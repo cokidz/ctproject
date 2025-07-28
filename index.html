@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로봇 별 모으기 시뮬레이션</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        .grid {
+            display: grid;
+            gap: 2px;
+            margin: 20px auto;
+            border: 2px solid #000;
+            width: fit-content;
+        }
+        .cell {
+            width: 50px;
+            height: 50px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .robot {
+            background-color: #00f;
+            color: #fff;
+        }
+        .obstacle {
+            background-color: #f00;
+            color: #fff;
+        }
+        .star {
+            background-color: #ff0;
+            color: #000;
+        }
+        .path {
+            background-color: #0f0;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        input {
+            margin: 10px;
+            padding: 5px;
+            font-size: 16px;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>로봇 별 모으기 시뮬레이션</h1>
+    <p>격자 크기를 입력하고 초기화 버튼을 눌러 격자를 생성하세요. (기본: 4)<br>
+    로봇이 왼쪽 위(파란색)에서 시작합니다. 오른쪽(R) 또는 아래(D)로만 이동할 수 있습니다.<br>
+    셀을 클릭하여 상태를 변경: 빈 셀 → 장애물(X) → 별(*) → 빈 셀.<br>
+    시작 버튼을 누르면 로봇이 이동하며, 초록색으로 경로를 표시합니다. 별을 모으면 사라집니다.</p>
+    <label for="gridSize">격자 크기 (n x n):</label>
+    <input type="number" id="gridSize" min="2" max="20" value="4">
+    <div class="grid" id="grid"></div>
+    <button id="init">격자 초기화</button>
+    <button id="start">시뮬레이션 시작</button>
+    <div id="status">상태: 준비</div>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const gridSizeInput = document.getElementById('gridSize');
+        const status = document.getElementById('status');
+        let cells = [];
+        let robotPos = { x: 0, y: 0 };
+        let collectedStars = 0;
+        let gridSize = parseInt(gridSizeInput.value);
+
+        // 격자 초기화
+        function initGrid() {
+            gridSize = parseInt(gridSizeInput.value) || 4;
+            if (gridSize < 2 || gridSize > 20) {
+                alert('격자 크기는 2에서 20 사이로 설정해주세요.');
+                return;
+            }
+            grid.style.gridTemplateColumns = `repeat(${gridSize}, 50px)`;
+            grid.style.gridTemplateRows = `repeat(${gridSize}, 50px)`;
+            grid.innerHTML = '';
+            cells = [];
+            collectedStars = 0;
+            robotPos = { x: 0, y: 0 };
+            for (let y = 0; y < gridSize; y++) {
+                cells[y] = [];
+                for (let x = 0; x < gridSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.state = 'empty'; // empty, obstacle, star
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
+                    cell.addEventListener('click', toggleCell);
+                    grid.appendChild(cell);
+                    cells[y][x] = cell;
+                }
+            }
+            updateRobotPosition();
+            status.textContent = '상태: 준비';
+        }
+
+        // 셀 상태 토글: empty -> obstacle -> star -> empty
+        function toggleCell(e) {
+            const cell = e.target;
+            const currentState = cell.dataset.state;
+            if (currentState === 'empty') {
+                cell.dataset.state = 'obstacle';
+                cell.classList.add('obstacle');
+                cell.textContent = 'X';
+            } else if (currentState === 'obstacle') {
+                cell.dataset.state = 'star';
+                cell.classList.remove('obstacle');
+                cell.classList.add('star');
+                cell.textContent = '*';
+            } else if (currentState === 'star') {
+                cell.dataset.state = 'empty';
+                cell.classList.remove('star');
+                cell.textContent = '';
+            }
+        }
+
+        // 로봇 위치 업데이트
+        function updateRobotPosition() {
+            cells.forEach(row => row.forEach(cell => cell.classList.remove('robot')));
+            cells[robotPos.y][robotPos.x].classList.add('robot');
+        }
+
+        // 시뮬레이션 시작
+        async function startSimulation() {
+            if (!cells.length) {
+                alert('먼저 격자를 초기화해주세요.');
+                return;
+            }
+            status.textContent = '상태: 이동 중...';
+            clearPath();
+            collectedStars = 0;
+            robotPos = { x: 0, y: 0 };
+
+            // 시작 위치의 별 체크
+            if (cells[robotPos.y][robotPos.x].dataset.state === 'star') {
+                collectedStars++;
+                cells[robotPos.y][robotPos.x].dataset.state = 'empty';
+                cells[robotPos.y][robotPos.x].classList.remove('star');
+                cells[robotPos.y][robotPos.x].textContent = '';
+            }
+
+            updateRobotPosition();
+
+            while (true) {
+                await new Promise(resolve => setTimeout(resolve, 500)); // 애니메이션 딜레이
+
+                const nextRight = { x: robotPos.x + 1, y: robotPos.y };
+                const nextDown = { x: robotPos.x, y: robotPos.y + 1 };
+
+                // 오른쪽 확인
+                if (isValidMove(nextRight) && !isObstacle(nextRight)) {
+                    moveTo(nextRight);
+                } else if (isValidMove(nextDown) && !isObstacle(nextDown)) {
+                    moveTo(nextDown);
+                } else {
+                    break; // 둘 다 막힘
+                }
+            }
+
+            status.textContent = `상태: 완료. 모은 별: ${collectedStars}`;
+        }
+
+        // 유효한 이동인지 확인 (격자 안)
+        function isValidMove(pos) {
+            return pos.x >= 0 && pos.x < gridSize && pos.y >= 0 && pos.y < gridSize;
+        }
+
+        // 장애물인지 확인
+        function isObstacle(pos) {
+            return cells[pos.y][pos.x].dataset.state === 'obstacle';
+        }
+
+        // 이동
+        function moveTo(pos) {
+            // 현재 위치를 경로로 표시
+            cells[robotPos.y][robotPos.x].classList.add('path');
+            cells[robotPos.y][robotPos.x].classList.remove('robot');
+
+            // 별 모으기
+            if (cells[pos.y][pos.x].dataset.state === 'star') {
+                collectedStars++;
+                cells[pos.y][pos.x].dataset.state = 'empty';
+                cells[pos.y][pos.x].classList.remove('star');
+                cells[pos.y][pos.x].textContent = '';
+            }
+
+            robotPos = pos;
+            updateRobotPosition();
+        }
+
+        // 경로 초기화
+        function clearPath() {
+            cells.forEach(row => row.forEach(cell => cell.classList.remove('path')));
+        }
+
+        // 이벤트 리스너
+        document.getElementById('init').addEventListener('click', initGrid);
+        document.getElementById('start').addEventListener('click', startSimulation);
+
+        // 초기화 (기본 4x4)
+        initGrid();
+    </script>
+</body>
+</html>
