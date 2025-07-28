@@ -1,5 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as htmlviewer
+st.set_page_config(layout='wide', page_title='DNA sequencting!!!')
 
 # Title Msg#1
 st.title('This is WebApp!')
