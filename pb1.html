@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>비버의 팔찌 패턴</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: flex-start;
+            background-color: #f0f0f0;
+            margin: 20px;
+            gap: 20px;
+        }
+        .column {
+            flex: 1;
+            max-width: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .left-column img {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+        .bead {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 5px;
+            border: 2px solid #333;
+            opacity: 0;
+            transform: scale(0.5);
+            animation: appear 0.5s forwards;
+        }
+        @keyframes appear {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        .red { background-color: red; }
+        .blue { background-color: blue; }
+        .green { background-color: green; }
+        #bracelet {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            min-height: 50px;
+            border: 2px dashed #ccc;
+            padding: 10px;
+            width: 100%;
+            max-width: 456px;
+            overflow-x: auto;
+        }
+        #bead-pool {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        #bead-pool .bead {
+            cursor: grab;
+            opacity: 1;
+            transform: scale(1);
+            animation: none;
+        }
+        #controls {
+            margin-bottom: 20px;
+        }
+        select, button {
+            padding: 10px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        #rules {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-top: 20px;
+            width: 80%;
+            max-width: 800px;
+            text-align: left;
+        }
+        .highlight {
+            background-color: yellow;
+        }
+        h1 {
+            color: #333;
+        }
+        #message {
+            margin-top: 10px;
+            font-size: 18px;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="column left-column">
+        <img src="https://raw.githubusercontent.com/cokidz/ctproject/main/images/eg1.png" alt="eg1">
+    </div>
+    <div class="column right-column">
+        <h1>비버의 팔찌</h1>
+        <div id="controls">
+            <label for="startBead">시작 구슬 선택:</label>
+            <select id="startBead">
+                <option value="R">R (Red)</option>
+                <option value="G">G (Green)</option>
+                <option value="B">B (Blue)</option>
+            </select>
+            <button onclick="startGame()">게임 시작</button>
+        </div>
+        <div id="bracelet" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+        <div id="bead-pool">
+            <div class="bead red" draggable="true" ondragstart="drag(event)" data-color="R"></div>
+            <div class="bead green" draggable="true" ondragstart="drag(event)" data-color="G"></div>
+            <div class="bead blue" draggable="true" ondragstart="drag(event)" data-color="B"></div>
+        </div>
+        <div id="message"></div>
+        <div id="rules">
+            <h2>팔찌 생성 규칙</h2>
+            <ul>
+                <li id="rule1">선택한 구슬부터 시작합니다.</li>
+                <li id="rule2">R 다음에는 B를 추가하고, B 다음에는 G를 추가합니다.</li>
+                <li id="rule3">G 다음에는 항상 R을 추가합니다.</li>
+                <li id="rule4">팔찌는 정확히 8개의 구슬로 구성됩니다.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let bracelet = [];
+        let startBead = 'R';
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData("color", ev.target.dataset.color);
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const color = ev.dataTransfer.getData("color");
+            addBead(color);
+        }
+
+        function addBead(color) {
+            if (bracelet.length >= 8) {
+                showMessage("팔찌가 이미 완성되었습니다!");
+                return;
+            }
+
+            if (bracelet.length > 0) {
+                const last = bracelet[bracelet.length - 1];
+                let expected;
+                if (last === 'R') expected = 'B';
+                else if (last === 'B') expected = 'G';
+                else if (last === 'G') expected = 'R';
+
+                if (color !== expected) {
+                    showMessage("잘못된 구슬입니다! 규칙을 확인하세요.");
+                    return;
+                }
+            }
+
+            bracelet.push(color);
+
+            const braceletDiv = document.getElementById('bracelet');
+            const beadDiv = document.createElement('div');
+            beadDiv.classList.add('bead');
+            if (color === 'R') beadDiv.classList.add('red');
+            else if (color === 'B') beadDiv.classList.add('blue');
+            else if (color === 'G') beadDiv.classList.add('green');
+            beadDiv.style.animationDelay = '0s';
+            braceletDiv.appendChild(beadDiv);
+
+            highlightRuleBasedOnLast(color);
+
+            if (bracelet.length === 8) {
+                showMessage("팔찌 완성! 축하합니다.");
+                highlightRule('rule4');
+            } else {
+                showMessage("");
+            }
+        }
+
+        function startGame() {
+            startBead = document.getElementById('startBead').value;
+            bracelet = [];
+            const braceletDiv = document.getElementById('bracelet');
+            braceletDiv.innerHTML = ''; // 초기화
+            clearHighlights();
+            showMessage("");
+
+            // 첫 번째 구슬 자동 추가
+            addBead(startBead);
+            highlightRule('rule1');
+        }
+
+        function highlightRuleBasedOnLast(color) {
+            let ruleId;
+            if (color === 'R' || color === 'B') {
+                ruleId = 'rule2';
+            } else if (color === 'G') {
+                ruleId = 'rule3';
+            }
+            highlightRule(ruleId);
+        }
+
+        function highlightRule(id) {
+            clearHighlights();
+            if (id) {
+                document.getElementById(id).classList.add('highlight');
+            }
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('#rules li').forEach(li => li.classList.remove('highlight'));
+        }
+
+        function showMessage(msg) {
+            document.getElementById('message').textContent = msg;
+        }
+
+        // 초기 로드 시 아무것도 안 함
+        window.onload = () => {
+            // 게임 시작 버튼으로 시작
+        };
+    </script>
+</body>
+</html>
