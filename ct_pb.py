@@ -13,7 +13,7 @@ st.set_page_config(layout="wide")  # 전체 앱을 Wide mode로 설정하여 더
 # KMA API 설정
 KMA_AUTH_KEY = st.secrets["kma"]["KMA_AUTH_KEY"]  # secrets.toml에서 KMA_AUTH_KEY 가져오기
 DOMAIN = "https://apihub.kma.go.kr/api/typ01/url/kma_sfcdd.php"
-STN = "113"  # 공주 지역 stn ID
+STN = "133"  # 공주 지역 stn ID
 
 # 샘플 데이터 (초기 표시용, 7일)
 SAMPLE_TEMPS = [24.5, 27.2, 25.9, 25.1, 26.3, 27.5, 28.8]
